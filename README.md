@@ -22,6 +22,5 @@ Seeda.builder do
   end
 end
 
-
 Seeda.build
 ```
