@@ -4,7 +4,7 @@ Seeda makes it easy to create structured and modular seeds.
 
 ## Usage
 ```ruby
-Seeda.builder do
+Seeda.build do
   # Simple seeds
   seed { Category.create! name: "Work"     }
   seed { Category.create! name: "Personal" }
@@ -22,5 +22,5 @@ Seeda.builder do
   end
 end
 
-Seeda.build
+Seeda.run
 ```
