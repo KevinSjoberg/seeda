@@ -30,77 +30,77 @@ end
 class TestSeeda < Minitest::Test
   def setup
     Storage.clear
-    Seeda.clear_seeds
+    Seeda.seed_builder.clear
   end
 
   def test_seeds
-    Seeda.builder do
+    builder = Seeda.build do
       seed { Storage.c_save(:jane, 'Jane') }
       seed { Storage.c_save(:john, 'John') }
     end
 
-    Seeda.build
+    Seeda.run
 
-    assert Seeda.seeds[:__unnamed__][0] == 'Jane'
-    assert Seeda.seeds[:__unnamed__][1] == 'John'
+    assert_equal 'Jane', builder.seeds[:__unnamed__][0]
+    assert_equal 'John', builder.seeds[:__unnamed__][1]
   end
 
   def test_grouped_seeds
-    Seeda.builder do
+    builder = Seeda.build do
       define :users do
         seed { Storage.c_save(:jane, 'Jane') }
         seed { Storage.c_save(:john, 'John') }
       end
     end
 
-    Seeda.build
+    Seeda.run
 
-    assert Seeda.seeds[:users][0] == 'Jane'
-    assert Seeda.seeds[:users][1] == 'John'
+    assert builder.seeds[:users][0] == 'Jane'
+    assert builder.seeds[:users][1] == 'John'
   end
 
   def test_seeds_with_names
-    Seeda.builder do
+    builder = Seeda.build do
       seed(:jane) { Storage.c_save(:jane, 'Jane') }
       seed(:john) { Storage.c_save(:john, 'John') }
     end
 
-    Seeda.build
+    Seeda.run
 
-    assert Seeda.seeds[:__unnamed__][:jane] == 'Jane'
-    assert Seeda.seeds[:__unnamed__][:john] == 'John'
+    assert builder.seeds[:__unnamed__][:jane] == 'Jane'
+    assert builder.seeds[:__unnamed__][:john] == 'John'
   end
 
   def test_grouped_seeds_with_names
-    Seeda.builder do
+    builder = Seeda.build do
       define :users do
         seed(:jane) { Storage.c_save(:jane, 'Jane') }
         seed(:john) { Storage.c_save(:john, 'John') }
       end
     end
 
-    Seeda.build
+    Seeda.run
 
-    assert Seeda.seeds[:users][:jane] == 'Jane'
-    assert Seeda.seeds[:users][:john] == 'John'
+    assert builder.seeds[:users][:jane] == 'Jane'
+    assert builder.seeds[:users][:john] == 'John'
   end
 
   def test_grouped_seeds_with_context
-    Seeda.builder do
+    builder = Seeda.build do
       define :users, Storage do
         seed {       c_save(:jane, 'Jane') }
         seed { |s| s.i_save(:john, 'John') }
       end
     end
 
-    Seeda.build
+    Seeda.run
 
-    assert Seeda.seeds[:users][0] == 'Jane'
-    assert Seeda.seeds[:users][1] == 'John'
+    assert builder.seeds[:users][0] == 'Jane'
+    assert builder.seeds[:users][1] == 'John'
   end
 
   def test_grouped_seeds_with_dependencies
-    Seeda.builder do
+    builder = Seeda.build do
       define :posts, Storage do
         seed { c_save(:post_1, 'Post 1') }
         seed { c_save(:post_2, 'Post 2') }
@@ -112,26 +112,26 @@ class TestSeeda < Minitest::Test
       end
     end
 
-    Seeda.build
+    Seeda.run
 
-    assert Seeda.seeds[:posts][0] == 'Post 1'
-    assert Seeda.seeds[:posts][1] == 'Post 2'
-    assert Seeda.seeds[:users][0] == 'Jane (Post 1)'
-    assert Seeda.seeds[:users][1] == 'John (Post 2)'
+    assert builder.seeds[:posts][0] == 'Post 1'
+    assert builder.seeds[:posts][1] == 'Post 2'
+    assert builder.seeds[:users][0] == 'Jane (Post 1)'
+    assert builder.seeds[:users][1] == 'John (Post 2)'
   end
 
   def test_grouped_seeds_unknown_dependency_error
-    Seeda.builder do
+    Seeda.build do
       define :posts, Storage, [:unknown] do
         seed { c_save(:post_1, 'Post 1') }
       end
     end
 
-    assert_raises(Seeda::UnknownDependencyError) { Seeda.build }
+    assert_raises(Seeda::UnknownDependencyError) { Seeda.run }
   end
 
   def test_grouped_seeds_circular_dependencies_error
-    Seeda.builder do
+    Seeda.build do
       define :posts, Storage, [:users] do
         seed { c_save(:post_1, 'Post 1') }
         seed { c_save(:post_2, 'Post 2') }
@@ -143,6 +143,6 @@ class TestSeeda < Minitest::Test
       end
     end
 
-    assert_raises(Seeda::DependencyNestingError) { Seeda.build }
+    assert_raises(Seeda::DependencyNestingError) { Seeda.run }
   end
 end

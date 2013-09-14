@@ -7,31 +7,31 @@ module Seeda
   class SeedBuilder
     include TSort
 
-    attr_reader :seeds, :built_seeds
+    attr_reader :seeds, :seed_procs
 
     def initialize
-      @seeds       = {}
-      @built_seeds = {}
+      @seeds      = {}
+      @seed_procs = {}
     end
 
     def seed(name = nil, &block)
-      seeds[:__unnamed__] ||= [nil, [], []]
-      seeds[:__unnamed__][2].push(Proc.new { seed(name) { block.call } })
+      seed_procs[:__unnamed__] ||= [nil, [], []]
+      seed_procs[:__unnamed__][2].push(Proc.new { seed(name) { block.call } })
     end
 
     def define(namespace, context = nil, dependencices = [], &block)
-      seeds[namespace] ||= [context, dependencices, []]
-      seeds[namespace][2].push(block)
+      seed_procs[namespace] ||= [context, dependencices, []]
+      seed_procs[namespace][2].push(block)
     end
 
-    def build
+    def run
       begin
         tsort.each do |namespace|
-          blocks        = seeds[namespace][2]
-          context       = seeds[namespace][0]
-          dependencices = seeds[namespace][1].map { |d| built_seeds[d] }
+          blocks        = seed_procs[namespace][2]
+          context       = seed_procs[namespace][0]
+          dependencices = seed_procs[namespace][1].map { |d| seeds[d] }
 
-          built_seeds[namespace] =
+          seeds[namespace] =
           SeedEvaluator.new(context, dependencices).evaluate(blocks)
         end
       rescue TSort::Cyclic => e
@@ -40,16 +40,16 @@ module Seeda
     end
 
     def clear
-      seeds.clear
+      seed_procs.clear
     end
 
     def tsort_each_node(&block)
-      seeds.keys.each(&block)
+      seed_procs.keys.each(&block)
     end
 
     def tsort_each_child(name, &block)
-      if seeds.has_key?(name)
-        seeds[name][1].each(&block)
+      if seed_procs.has_key?(name)
+        seed_procs[name][1].each(&block)
       else
         raise UnknownDependencyError, "unknown dependency: #{name}"
       end
